@@ -1,8 +1,8 @@
 const CACHE_NAME = 'portfolio-cache-v1';
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/manifest.json'
+  '/financial-management/',
+  '/financial-management/index.html',
+  '/financial-management/manifest.json'
 ];
 
 self.addEventListener('install', function(event) {
