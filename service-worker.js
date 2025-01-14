@@ -27,7 +27,7 @@ self.addEventListener('fetch', function(event) {
         .catch(function() {
           // اگر درخواست به شبکه با شکست مواجه شد، از کش استفاده می‌کنیم.
           return caches.match(event.request).then(function(response) {
-            return response || caches.match('./index.html');
+            return response || caches.match('/financial-management/index.html');
           });
         })
     );
