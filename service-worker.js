@@ -2,16 +2,7 @@ const CACHE_NAME = 'portfolio-cache-v1';
 const urlsToCache = [
   './',
   './index.html',
-  './manifest.json',
-  './icons/icon-192x192.pngconst CACHE_NAME = 'portfolio-cache-v1';
-const urlsToCache = [
-  './',
-  './index.html',
-  './manifest.json',
-  './styles.css', // اگر فایل استایل دارید
-  './script.js', // اگر فایل جاوااسکریپت خارجی دارید
-  './icons/icon-192x192.png',
-  './icons/icon-512x512.png'
+  './manifest.json'
 ];
 
 self.addEventListener('install', function(event) {
