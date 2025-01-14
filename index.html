@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> مدریت سرمایه بورس</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-5">
+    <div class="container mx-auto max-w-4xl">
+        <h1 class="text-3xl font-bold text-center text-blue-600 mb-6">مدریت سرمایه بورس </h1>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+                <h3 class="text-gray-600 mb-2">دارایی کل</h3>
+                <div class="text-2xl font-bold" id="total-assets">0 تومان</div>
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+                <h3 class="text-gray-600 mb-2">سود کل</h3>
+                <div class="text-2xl font-bold" id="total-profit">0 تومان</div>
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+                <h3 class="text-gray-600 mb-2">درصد سود کل</h3>
+                <div class="text-2xl font-bold" id="total-profit-percent">0%</div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-md mb-6">
+            <div class="p-4 border-b">
+                <form id="add-stock-form" class="flex flex-col gap-4">
+                    <input type="text" placeholder="نام سهام" class="p-2 border rounded-lg" required>
+                    <input type="number" step="0.01" placeholder="قیمت کل سهام" class="p-2 border rounded-lg" required>
+                    <button type="submit" class="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700">افزودن سهام</button>
+                </form>
+            </div>
+            <div id="stocks-container" class="p-4"></div>
+        </div>
+    </div>
+
+    <script>
+        class Portfolio {
+            constructor() {
+                this.stocks = [];
+                this.initializeEventListeners();
+                this.loadFromLocalStorage();
+                this.updateDashboard();
+            }
+            
+            initializeEventListeners() {
+                document.getElementById('add-stock-form').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const [nameInput, totalValueInput] = e.target.elements;
+                    this.addStock(nameInput.value, parseFloat(totalValueInput.value));
+                    e.target.reset();
+                });
+            }
+            
+            addStock(name, totalValue) {
+                const stock = {
+                    id: Date.now(),
+                    name,
+                    totalValue,
+                    transactions: [],
+                    notes: ""
+                };
+                this.stocks.push(stock);
+                this.saveToLocalStorage();
+                this.renderStocks();
+                this.updateDashboard();
+            }
+            
+            removeStock(id) {
+                this.stocks = this.stocks.filter(stock => stock.id !== id);
+                this.saveToLocalStorage();
+                this.renderStocks();
+                this.updateDashboard();
+            }
+            
+            calculateProfit(totalValue, profitType, profitValue) {
+                if (profitType === 'percentage') {
+                    return {
+                        amount: (totalValue * profitValue) / 100,
+                        percentage: profitValue
+                    };
+                } else {
+                    return {
+                        amount: profitValue,
+                        percentage: (profitValue / totalValue) * 100
+                    };
+                }
+            }
+            
+            addTransaction(stockId, profitType, profitValue) {
+                const stock = this.stocks.find(s => s.id === stockId);
+                if (stock) {
+                    const profit = this.calculateProfit(stock.totalValue, profitType, parseFloat(profitValue));
+                    stock.transactions.push({
+                        id: Date.now(),
+                        profitAmount: profit.amount,
+                        profitPercent: profit.percentage,
+                        date: new Date().toISOString().split('T')[0]
+                    });
+                    this.saveToLocalStorage();
+                    this.renderStocks();
+                    this.updateDashboard();
+                }
+            }
+            
+            removeTransaction(stockId, transactionId) {
+                const stock = this.stocks.find(s => s.id === stockId);
+                if (stock) {
+                    stock.transactions = stock.transactions.filter(t => t.id !== transactionId);
+                    this.saveToLocalStorage();
+                    this.renderStocks();
+                    this.updateDashboard();
+                }
+            }
+            
+            updateNotes(stockId, notes) {
+                const stock = this.stocks.find(s => s.id === stockId);
+                if (stock) {
+                    stock.notes = notes;
+                    this.saveToLocalStorage();
+                }
+            }
+            
+            calculateTotalAssets() {
+                return this.stocks.reduce((total, stock) => {
+                    const stockProfit = stock.transactions.reduce((profit, t) => profit + t.profitAmount, 0);
+                    return total + stock.totalValue + stockProfit;
+                }, 0);
+            }
+            
+            calculateTotalProfit() {
+                return this.stocks.reduce((total, stock) => {
+                    return total + stock.transactions.reduce((profit, t) => profit + t.profitAmount, 0);
+                }, 0);
+            }
+            
+            calculateTotalProfitPercent() {
+                const totalInitialValue = this.stocks.reduce((total, stock) => total + stock.totalValue, 0);
+                const totalProfit = this.calculateTotalProfit();
+                return totalInitialValue ? (totalProfit / totalInitialValue) * 100 : 0;
+            }
+            
+            formatCurrency(amount) {
+                return `${Math.round(amount).toLocaleString()} تومان`;
+            }
+            
+            updateDashboard() {
+                document.getElementById('total-assets').textContent = 
+                    this.formatCurrency(this.calculateTotalAssets());
+                
+                const totalProfit = this.calculateTotalProfit();
+                const totalProfitElement = document.getElementById('total-profit');
+                totalProfitElement.textContent = this.formatCurrency(totalProfit);
+                totalProfitElement.className = `text-2xl font-bold ${totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`;
+                
+                const profitPercent = this.calculateTotalProfitPercent();
+                const profitPercentElement = document.getElementById('total-profit-percent');
+                profitPercentElement.textContent = `${profitPercent.toFixed(2)}%`;
+                profitPercentElement.className = `text-2xl font-bold ${profitPercent >= 0 ? 'text-green-600' : 'text-red-600'}`;
+            }
+            
+            renderStocks() {
+                const container = document.getElementById('stocks-container');
+                container.innerHTML = this.stocks.map(stock => this.createStockHTML(stock)).join('');
+                
+                this.stocks.forEach(stock => {
+                    const stockElement = document.querySelector(`[data-stock-id="${stock.id}"]`);
+                    if (stockElement) {
+                        stockElement.querySelector('.toggle-details').addEventListener('click', () => {
+                            const details = stockElement.querySelector('.stock-details');
+                            details.classList.toggle('hidden');
+                        });
+                        
+                        stockElement.querySelector('.transaction-form').addEventListener('submit', (e) => {
+                            e.preventDefault();
+                            const profitType = e.target.elements.profitType.value;
+                            const profitValue = parseFloat(e.target.elements.profitValue.value);
+                            this.addTransaction(stock.id, profitType, profitValue);
+                            e.target.reset();
+                        });
+                        
+                        stockElement.querySelector('.remove-stock').addEventListener('click', () => {
+                            if (confirm('آیا از حذف این سهام مطمئن هستید؟')) {
+                                this.removeStock(stock.id);
+                            }
+                        });
+                        
+                        stockElement.querySelectorAll('.remove-transaction').forEach(button => {
+                            button.addEventListener('click', () => {
+                                const transactionId = parseInt(button.dataset.transactionId);
+                                this.removeTransaction(stock.id, transactionId);
+                            });
+                        });
+                        
+                        stockElement.querySelector('.notes-section textarea').addEventListener('input', (e) => {
+                            this.updateNotes(stock.id, e.target.value);
+                        });
+                    }
+                });
+            }
+            
+            createStockHTML(stock) {
+                const totalStockProfit = stock.transactions.reduce((sum, t) => sum + t.profitAmount, 0);
+                const totalStockValue = stock.totalValue + totalStockProfit;
+                const totalChangePercent = ((totalStockValue - stock.totalValue) / stock.totalValue) * 100;
+                
+                return `
+                    <div class="p-4 border-b" data-stock-id="${stock.id}">
+                        <div class="flex justify-between items-center gap-4 flex-wrap">
+                            <div>
+                                <strong class="text-lg">${stock.name}</strong>
+                                <div class="text-gray-600 mt-2">ارزش اولیه: ${this.formatCurrency(stock.totalValue)}</div>
+                                <div class="${totalStockProfit >= 0 ? 'text-green-600' : 'text-red-600'} mt-1">
+                                    ارزش فعلی: ${this.formatCurrency(totalStockValue)}
+                                    <span class="text-sm">(${totalChangePercent.toFixed(2)}%)</span>
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button class="toggle-details bg-gray-200 text-gray-700 p-2 rounded-lg hover:bg-gray-300 w-60">جزئیات</button>
+                                <button class="remove-stock bg-red-600 text-white p-2 rounded-lg hover:bg-red-700 w-15">حذف</button>
+                            </div>
+                        </div>
+                        <div class="stock-details hidden mt-4">
+                            <form class="transaction-form flex flex-col gap-4">
+                                <div class="profit-type-select flex gap-4">
+                                    <label class="flex items-center gap-2">
+                                        <input type="radio" name="profitType" value="percentage" checked>
+                                        درصد سود/ضرر
+                                    </label>
+                                    <label class="flex items-center gap-2">
+                                        <input type="radio" name="profitType" value="amount">
+                                        مبلغ سود/ضرر
+                                    </label>
+                                </div>
+                                <input type="number" step="0.01" name="profitValue" placeholder="مقدار سود/ضرر" class="p-2 border rounded-lg" required>
+                                <button type="submit" class="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700">ثبت تغییرات</button>
+                            </form>
+                            <div class="transactions-list mt-4">
+                                ${stock.transactions.map(transaction => `
+                                    <div class="transaction-item flex justify-between items-center gap-4 py-2 border-b">
+                                        <div class="transaction-info">
+                                            <div class="${transaction.profitAmount >= 0 ? 'text-green-600' : 'text-red-600'}">
+                                                ${this.formatCurrency(transaction.profitAmount)}
+                                                (${transaction.profitPercent.toFixed(2)}%)
+                                            </div>
+                                            <div class="text-gray-600">تاریخ: ${new Date(transaction.date).toLocaleDateString('fa-IR')}</div>
+                                        </div>
+                                        <button class="remove-transaction bg-red-600 text-white p-2 rounded-lg hover:bg-red-700" data-transaction-id="${transaction.id}">حذف</button>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            <div class="notes-section mt-4">
+                                <h4 class="text-lg font-bold mb-2">یادداشت‌ها</h4>
+                                <textarea placeholder="یادداشت‌های خود را اینجا بنویسید..." class="w-full p-2 border rounded-lg">${stock.notes}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            saveToLocalStorage() {
+                localStorage.setItem('portfolio-default', JSON.stringify(this.stocks));
+            }
+            
+            loadFromLocalStorage() {
+                const saved = localStorage.getItem('portfolio-default');
+                if (saved) {
+                    this.stocks = JSON.parse(saved);
+                    this.renderStocks();
+                }
+            }
+        }
+
+        const portfolio = new Portfolio();
+    </script>
+</body>
+</html>
