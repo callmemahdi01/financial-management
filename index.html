@@ -276,5 +276,17 @@
 
         const portfolio = new Portfolio();
     </script>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./service-worker.js')
+      .then(function(registration) {
+        console.log('Service Worker ثبت شد', registration);
+      })
+      .catch(function(error) {
+        console.log('Service Worker ثبت نشد', error);
+      });
+  }
+</script>
+
 </body>
 </html>
