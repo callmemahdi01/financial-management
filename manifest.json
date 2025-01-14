@@ -2,7 +2,7 @@
   "name": "مدریت سرمایه بورس",
   "short_name": "سرمایه",
   "description": "مدریت سرمایه بورس",
-  "start_url": "/financial-management/index.html",
+  "start_url": "/financial-management/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#007bff"
